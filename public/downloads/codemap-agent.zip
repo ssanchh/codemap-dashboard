@@ -1,0 +1,32 @@
+# CodeMap Agent
+
+This is a placeholder for the CodeMap standalone agent.
+
+## Installation
+1. Download and extract this .zip file
+2. Run the installer for your OS:
+   - Windows: run installer.exe
+   - macOS: run installer.pkg
+   - Linux: run install.sh
+
+## Features
+- Cross-platform compatibility
+- CLI integration
+- Custom AI model support
+- Advanced configuration
+
+## Configuration
+Edit config.json to set up:
+- AI model endpoints
+- Project paths
+- Authentication tokens
+- Custom rules
+
+## Usage
+```bash
+codemap-agent start
+codemap-agent analyze /path/to/project
+codemap-agent optimize --context-size 4096
+```
+
+Version: 1.0.0 

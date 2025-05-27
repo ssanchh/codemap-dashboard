@@ -1,236 +1,316 @@
 'use client'
 
+import { useUser } from '@clerk/nextjs'
+import { useState, useEffect } from 'react'
 import { Navigation } from '@/components/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Download, ExternalLink, CheckCircle, Code, Zap, BarChart3 } from 'lucide-react'
+import { Download, ExternalLink, CheckCircle, Code, Zap, BarChart3, FileText, Package, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 
+interface UserData {
+  id: string
+  clerk_user_id: string
+  email: string
+  plan: 'free' | 'monthly' | 'yearly'
+  is_active: boolean
+  stripe_customer_id?: string
+  billing_end_date?: string
+  created_at: string
+  updated_at: string
+}
+
 export default function DownloadPage() {
+  const { user, isLoaded } = useUser()
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [downloading, setDownloading] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      fetchUserData()
+    }
+  }, [isLoaded, user])
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/user')
+      if (response.ok) {
+        const data = await response.json()
+        setUserData(data)
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDownload = async (fileType: 'extension' | 'agent') => {
+    if (!user) return
+
+    setDownloading(fileType)
+    try {
+      const response = await fetch(`/api/download?file=${fileType}`)
+      
+      if (!response.ok) {
+        const error = await response.json()
+        alert(error.error || 'Download failed')
+        return
+      }
+
+      // Create download link
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileType === 'extension' ? 'codemap-extension.vsix' : 'codemap-agent.zip'
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Download error:', error)
+      alert('Download failed. Please try again.')
+    } finally {
+      setDownloading(null)
+    }
+  }
+
+  const canDownload = userData && (userData.plan === 'free' || userData.is_active)
+
+  if (!isLoaded || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading downloads...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Sign In Required</h1>
+            <p className="text-gray-600 mb-6">Please sign in to access downloads.</p>
+            <Link href="/sign-in">
+              <Button>Sign In</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Download CodeMap
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Optimize your AI coding workflow with intelligent context mapping and token savings
-            </p>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Download CodeMap
+          </h1>
+          <p className="text-gray-600">
+            Get the CodeMap extension and agent to supercharge your AI coding workflow.
+          </p>
+        </div>
 
-          {/* Download Options */}
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
-            {/* VS Code Extension */}
-            <Card className="relative">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Code className="w-6 h-6 text-blue-600" />
-                    VS Code Extension
-                  </CardTitle>
-                  <Badge className="bg-green-500 text-white">Recommended</Badge>
-                </div>
-                <CardDescription>
-                  Integrate CodeMap directly into Visual Studio Code
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Real-time context optimization
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Automatic token savings tracking
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Seamless AI assistant integration
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Button className="w-full" disabled>
-                      <Download className="w-4 h-4 mr-2" />
-                      Coming Soon
-                    </Button>
-                    <p className="text-xs text-gray-500 text-center mt-2">
-                      Extension in development
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* CLI Tool */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="w-6 h-6 text-purple-600" />
-                  CLI Tool
-                </CardTitle>
-                <CardDescription>
-                  Command-line interface for advanced users
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Batch processing capabilities
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    CI/CD integration support
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    Custom workflow automation
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Button variant="outline" className="w-full" disabled>
-                      <Download className="w-4 h-4 mr-2" />
-                      Coming Soon
-                    </Button>
-                    <p className="text-xs text-gray-500 text-center mt-2">
-                      CLI tool in development
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Installation Instructions */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Installation Instructions</CardTitle>
-              <CardDescription>
-                Get started with CodeMap in just a few steps
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                    1
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">Create Your Account</h3>
-                    <p className="text-gray-600 text-sm">
-                      Sign up for a CodeMap account to track your usage and access premium features.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                    2
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">Install the Extension</h3>
-                    <p className="text-gray-600 text-sm mb-2">
-                      Download and install the CodeMap extension for your preferred development environment.
-                    </p>
-                    <div className="bg-gray-100 p-3 rounded-lg font-mono text-sm">
-                      # Coming soon: npm install -g codemap-cli
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                    3
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">Configure Your API Key</h3>
-                    <p className="text-gray-600 text-sm">
-                      Connect your CodeMap account by adding your API key to the extension settings.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                    4
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">Start Optimizing</h3>
-                    <p className="text-gray-600 text-sm">
-                      Begin using your AI coding assistant with CodeMap's intelligent context optimization.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Features Preview */}
+        {/* User Status */}
+        <div className="mb-8">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-6 h-6" />
-                What You'll Get
+                {canDownload ? (
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-orange-600" />
+                )}
+                Download Access
               </CardTitle>
-              <CardDescription>
-                Powerful features to enhance your AI coding experience
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Zap className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <h3 className="font-semibold mb-2">Token Optimization</h3>
-                  <p className="text-sm text-gray-600">
-                    Reduce AI API costs by up to 70% with intelligent context compression
-                  </p>
-                </div>
+              <div className="flex items-center gap-4">
+                <Badge variant={userData?.is_active ? 'default' : 'outline'}>
+                  {userData?.plan === 'free' ? 'Free Plan' : 
+                   userData?.plan === 'monthly' ? 'Monthly Pro' : 
+                   userData?.plan === 'yearly' ? 'Yearly Pro' : 'Unknown'}
+                </Badge>
+                {userData?.is_active && (
+                  <Badge variant="outline" className="text-green-600 border-green-600">
+                    Active Subscription
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                {canDownload 
+                  ? 'You have access to download CodeMap files.'
+                  : 'Upgrade your plan to access downloads.'
+                }
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <BarChart3 className="w-6 h-6 text-green-600" />
-                  </div>
-                  <h3 className="font-semibold mb-2">Usage Analytics</h3>
-                  <p className="text-sm text-gray-600">
-                    Track your optimization performance and savings over time
-                  </p>
+        {/* Downloads */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          {/* VS Code Extension */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Package className="h-8 w-8 text-blue-600" />
+                <div>
+                  <CardTitle>VS Code Extension</CardTitle>
+                  <CardDescription>
+                    CodeMap extension for Visual Studio Code
+                  </CardDescription>
                 </div>
-
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Code className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <h3 className="font-semibold mb-2">Smart Context</h3>
-                  <p className="text-sm text-gray-600">
-                    Automatically provide relevant code context to AI assistants
-                  </p>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Features:</h4>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    <li>• Intelligent context mapping</li>
+                    <li>• Token usage optimization</li>
+                    <li>• Real-time AI assistance</li>
+                    <li>• Project structure analysis</li>
+                  </ul>
                 </div>
+                <Button 
+                  onClick={() => handleDownload('extension')}
+                  disabled={!canDownload || downloading === 'extension'}
+                  className="w-full"
+                >
+                  {downloading === 'extension' ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Extension (.vsix)
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* CTA */}
-          <div className="text-center mt-12">
-            <p className="text-gray-600 mb-4">
-              Ready to optimize your AI coding workflow?
-            </p>
-            <Link href="/dashboard">
-              <Button size="lg">
-                Go to Dashboard
-                <ExternalLink className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </div>
+          {/* Agent Package */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <FileText className="h-8 w-8 text-green-600" />
+                <div>
+                  <CardTitle>CodeMap Agent</CardTitle>
+                  <CardDescription>
+                    Standalone agent for other editors
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Features:</h4>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    <li>• Cross-platform compatibility</li>
+                    <li>• CLI integration</li>
+                    <li>• Custom AI model support</li>
+                    <li>• Advanced configuration</li>
+                  </ul>
+                </div>
+                <Button 
+                  onClick={() => handleDownload('agent')}
+                  disabled={!canDownload || downloading === 'agent'}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {downloading === 'agent' ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Agent (.zip)
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Installation Instructions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Installation Instructions</CardTitle>
+            <CardDescription>
+              How to install and set up CodeMap
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">VS Code Extension</h4>
+                <ol className="text-sm text-gray-600 space-y-2">
+                  <li>1. Download the .vsix file</li>
+                  <li>2. Open VS Code</li>
+                  <li>3. Go to Extensions (Ctrl+Shift+X)</li>
+                  <li>4. Click "..." → "Install from VSIX"</li>
+                  <li>5. Select the downloaded file</li>
+                  <li>6. Restart VS Code</li>
+                </ol>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">CodeMap Agent</h4>
+                <ol className="text-sm text-gray-600 space-y-2">
+                  <li>1. Download and extract the .zip file</li>
+                  <li>2. Run the installer for your OS</li>
+                  <li>3. Configure your AI model settings</li>
+                  <li>4. Set up project paths</li>
+                  <li>5. Start the agent service</li>
+                  <li>6. Connect your editor</li>
+                </ol>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Upgrade CTA for free users */}
+        {userData?.plan === 'free' && (
+          <Card className="mt-6 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="text-blue-900">Unlock Premium Features</CardTitle>
+              <CardDescription className="text-blue-700">
+                Upgrade to Pro for advanced features and priority support
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/pricing">
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  View Pro Plans
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )

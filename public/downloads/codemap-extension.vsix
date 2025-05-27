@@ -1,0 +1,18 @@
+# CodeMap VS Code Extension
+
+This is a placeholder for the CodeMap VS Code extension.
+
+## Installation
+1. Download this .vsix file
+2. Open VS Code
+3. Go to Extensions (Ctrl+Shift+X)
+4. Click '...' → 'Install from VSIX'
+5. Select this file
+
+## Features
+- Intelligent context mapping
+- Token usage optimization
+- Real-time AI assistance
+- Project structure analysis
+
+Version: 1.0.0 
