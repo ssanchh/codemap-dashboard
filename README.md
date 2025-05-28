@@ -73,7 +73,8 @@ A modern SaaS dashboard for CodeMap - an AI coding assistant optimization tool. 
    STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
 
    # App Configuration
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   NEXT_PUBLIC_APP_URL=https://app.codemapai.io
+   # For local development, use: http://localhost:3000
    ```
 
 ### Database Setup
@@ -97,7 +98,7 @@ A modern SaaS dashboard for CodeMap - an AI coding assistant optimization tool. 
    - Update the price IDs in `src/lib/stripe.ts`
 
 2. **Set up Webhooks** (for production)
-   - Add webhook endpoint: `https://yourdomain.com/api/webhooks/stripe`
+   - Add webhook endpoint: `https://app.codemapai.io/api/webhooks/stripe`
    - Select events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
    - Copy webhook secret to environment variables
 
@@ -114,7 +115,9 @@ A modern SaaS dashboard for CodeMap - an AI coding assistant optimization tool. 
 
 2. **Open your browser**
    
-   Navigate to [http://localhost:3000](http://localhost:3000)
+   Navigate to [http://localhost:3000](http://localhost:3000) for local development
+   
+   Production app is available at [https://app.codemapai.io](https://app.codemapai.io)
 
 ## Project Structure
 
